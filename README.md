@@ -19,6 +19,7 @@ Sequential Monte Carlo
 
 Kalman Filter
 [Meinhold etc 1993 Understanding the Kalman Filter](http://people.math.umass.edu/~lavine/courses/797/kalman_filter.pdf)
+
 [Chuanwen Chen 2017 Notes on Kalman Filter](https://github.com/chuanwen/seqMC/notes_kalman_filter.pdf)
 
 Residual resample
