@@ -14,4 +14,11 @@ example(seqMC)
 ```
 
 ## reference
+Sequential Monte Carlo
 [Gordon et al 1993, Novel approach to nonlinear/non-Gaussian Bayesian state](http://www3.nd.edu/~lemmon/courses/ee67033/pubs/GordonSalmondSmith93.pdf)
+
+Residual resample
+[Liu, Chen 1995 Blind deconvolution via sequential imputations](http://www.people.fas.harvard.edu/~junliu/TechRept/95folder/liu&chen95_s.pdf)
+
+Systematic resample
+[Kitagawa 1996 Monte Carlo Filter and Smoother for Non-Gaussian Nonlinear State Space Models](https://www.jstor.org/stable/1390750?seq=1#page_scan_tab_contents)

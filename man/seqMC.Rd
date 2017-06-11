@@ -4,7 +4,8 @@
 \alias{seqMC}
 \title{Sequential Monte Carlo}
 \usage{
-seqMC(f, prob_y_given_x, x0, y)
+seqMC(f, prob_y_given_x, x0, y, sample_method = c("systematic", "residual",
+  "bootstrap"))
 }
 \arguments{
 \item{f}{function, when called with parameter k (time point) and 
@@ -18,6 +19,9 @@ the conditional probability/density: Prob(y_k | x_k )}
 
 \item{y}{matrix, observations, col 1 is observation at time 1, col 2 is
 observation at time 2, ... etc.}
+
+\item{sample_method}{character, specify sample method in the resample stage.
+Default systematic, means "systematic resampling".}
 }
 \value{
 sample from posterior distribution of state vectors, a 3D array, with

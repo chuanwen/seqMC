@@ -8,6 +8,8 @@
 #' @param x0 matrix, sample of state vector at time 0, one sample vector per col.
 #' @param y matrix, observations, col 1 is observation at time 1, col 2 is
 #'		observation at time 2, ... etc.
+#' @param sample_method character, specify sample method in the resample stage.
+#'      Default systematic, means "systematic resampling".
 #' @return sample from posterior distribution of state vectors, a 3D array, with
 #' 		dimension of d x N x K, where d is the length of a state vector, N is the number of samples,
 #'		K is the number of time steps.
@@ -47,8 +49,10 @@
 #' lines(xhat_ci_upper, lty='dotted')
 #'
 #' @export
-seqMC <- function(f, prob_y_given_x, x0, y) {
+seqMC <- function(f, prob_y_given_x, x0, y,
+	              sample_method=c("systematic", "residual", "bootstrap")) {
 	stopifnot(is.matrix(x0), is.matrix(y))
+	sample_method = match.arg(sample_method)
 	N = ncol(x0)
 	K = ncol(y)
 	
@@ -56,26 +60,39 @@ seqMC <- function(f, prob_y_given_x, x0, y) {
 		x / sum(x)
 	}
 	
-	bootstrap <- function(x, prob) {
-		stopifnot(is.matrix(x), is.vector(prob), ncol(x) == length(prob))
-		N = ncol(x)
-		x[, sample.int(N, size=N, replace=TRUE, prob=prob), drop=FALSE]
+	bootstrap_sample <- function(prob, n=length(prob)) {
+		sample.int(length(prob), size=n, replace=TRUE, prob=prob)
 	}
 	
-	systematic_resample <- function(x, prob) {
-		stopifnot(is.matrix(x), is.vector(prob), ncol(x) == length(prob))
-		N = ncol(x)
-		t = floor(N * cumsum(c(0.0, prob)) + runif(1))
-		m = t[-1] - t[-(N+1)]
-		x[, rep.int(1:N, m), drop=FALSE]
+	residual_sample <- function(prob, n=length(prob)) {
+		size = length(prob)
+		count = n * prob
+		count_int = floor(count)
+		n_int = sum(count_int)
+		ans = rep(1:size, count_int)
+		if (n_int < n) {
+			n_left = n - n_int
+			prob_left = (count - count_int) / n_left
+			ans = c(ans, bootstrap_sample(prob_left, n_left))
+		}
+		ans
 	}
+	
+	systematic_sample <- function(prob, n=length(prob)) {
+		zeta = floor(n * cumsum(c(0.0, prob)) + runif(1))
+		m = zeta[-1] - zeta[-length(zeta)]
+		rep.int(1:length(prob), m)
+	}
+	
+	resampler = get(sprintf("%s_sample", sample_method))
 	
 	x = list(K, mode="list")
 	for (k in 1:K) {
 		xk = f(k, x0)
-		q =  normalize(prob_y_given_x(k, y[,k], xk))
-		# xk = bootstrap(xk, q)
-		xk = systematic_resample(xk, q)
+		q = normalize(prob_y_given_x(k, y[,k], xk))
+		stopifnot(is.matrix(xk), is.vector(q), ncol(xk) == length(q))
+		# resample cols of xk with probability q #
+		xk = xk[, resampler(q), drop=FALSE]
 		x[[k]] = xk 
 		x0 = xk
 	}
@@ -83,8 +100,3 @@ seqMC <- function(f, prob_y_given_x, x0, y) {
 	dim(x) = c(dim(x0), K)
 	invisible(x)
 }
-
-
-
-
-
