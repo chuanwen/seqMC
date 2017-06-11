@@ -8,44 +8,45 @@ seqMC(f, prob_y_given_x, x0, y, sample_method = c("systematic", "residual",
   "bootstrap"))
 }
 \arguments{
-\item{f}{function, when called with parameter k (time point) and 
-x_k (state vector at time k), it would return x_{k+1}}
+\item{f}{function, when called with parameter t (time point) and 
+x_t (state vector at time t), it would return x_(t+1)}
 
-\item{prob_y_given_x}{function, when called with parameter k (time point), 
-y_k (observation vector at time k) and x_k (state vector at time k), it would return
-the conditional probability/density: Prob(y_k | x_k )}
+\item{prob_y_given_x}{function, when called with parameter t (time point), 
+y_t (observation vector at time t) and x_t (state vector at time t), it would return
+the conditional probability/density: Prob(y_t | x_t )}
 
-\item{x0}{matrix, sample of state vector at time 0, one sample vector per col.}
+\item{x0}{matrix of N cols, sample of state vector at time 0, one sample vector per col,
+N is the number of samples.}
 
-\item{y}{matrix, observations, col 1 is observation at time 1, col 2 is
-observation at time 2, ... etc.}
+\item{y}{matrix of T cols, observations, col 1 is observation at time 1, col 2 is
+observation at time 2, ... etc. T is the number of time points.}
 
 \item{sample_method}{character, specify sample method in the resample stage.
 Default systematic, means "systematic resampling".}
 }
 \value{
 sample from posterior distribution of state vectors, a 3D array, with
-		dimension of d x N x K, where d is the length of a state vector, N is the number of samples,
-	K is the number of time steps.
+		dimension of d x N x T, where d is the length of a state vector, N is the number of samples,
+	T is the number of time steps.
 }
 \description{
 Sequential Monte Carlo
 }
 \examples{
 
-f <- function(k, x) {
- 0.5 * x + 25 * x / (1 + x * x) + 8.0 * cos(1.2 * (k-1)) + rnorm(length(x), sd=sqrt(10.0))
+f <- function(t, x) {
+ 0.5 * x + 25 * x / (1 + x * x) + 8.0 * cos(1.2 * (t-1)) + rnorm(length(x), sd=sqrt(10.0))
 }
 
-prob_y_given_x <- function(k, y, x) {
+prob_y_given_x <- function(t, y, x) {
 	 as.numeric(dnorm(y - x * x / 20.0))
 }
 
 ### simulate true path ###
-K = 50
-x = rep(0.0, K+1)
-for (k in 1:K) {
-	 x[k+1] = f(k, x[k])
+T = 50
+x = rep(0.0, T+1)
+for (t in 1:T) {
+	 x[t+1] = f(t, x[t])
 }
 x = x[-1]
 y = x * x / 20 + rnorm(length(x))
