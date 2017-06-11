@@ -92,7 +92,7 @@ seqMC <- function(f, prob_y_given_x, x0, y,
 		xt = f(t, x0)
 		w = normalize(prob_y_given_x(t, y[,t], xt))
 		stopifnot(is.matrix(xt), is.vector(w), ncol(xt) == length(w))
-		# resample cols of xt with probability q #
+		# resample cols of xt with probability w #
 		xt = xt[, resampler(w), drop=FALSE]
 		x[[t]] = xt # save posterior distribution/sample at time t.
 		x0 = xt
