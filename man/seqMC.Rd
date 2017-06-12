@@ -2,9 +2,9 @@
 % Please edit documentation in R/seqMC.R
 \name{seqMC}
 \alias{seqMC}
-\title{Sequential Monte Carlo}
+\title{seqMC creates a seqMC object}
 \usage{
-seqMC(f, prob_y_given_x, x0, y, sample_method = c("systematic", "residual",
+seqMC(f, prob_y_given_x, x0, sample_method = c("systematic", "residual",
   "bootstrap"))
 }
 \arguments{
@@ -13,24 +13,18 @@ x_t (state vector at time t), it would return x_(t+1)}
 
 \item{prob_y_given_x}{function, when called with parameter t (time point), 
 y_t (observation vector at time t) and x_t (state vector at time t), it would return
-the conditional probability/density: Prob(y_t | x_t )}
+the conditional probability: Prob(y_t | x_t )}
 
-\item{x0}{matrix of N cols, sample of state vector at time 0, one sample vector per col,
-N is the number of samples.}
-
-\item{y}{matrix of T cols, observations, col 1 is observation at time 1, col 2 is
-observation at time 2, ... etc. T is the number of time points.}
+\item{x0}{matrix, sample of state vector at time 0, each col is a sample of state at time 0.}
 
 \item{sample_method}{character, specify sample method in the resample stage.
 Default systematic, means "systematic resampling".}
 }
 \value{
-sample from posterior distribution of state vectors, a 3D array, with
-		dimension of d x N x T, where d is the length of a state vector, N is the number of samples,
-	T is the number of time steps.
+a seqMC object, which can be updated at each time point. e.g. \code{obj = update(ojb, y)}
 }
 \description{
-Sequential Monte Carlo
+seqMC creates a seqMC object
 }
 \examples{
 
@@ -42,28 +36,29 @@ prob_y_given_x <- function(t, y, x) {
 	 as.numeric(dnorm(y - x * x / 20.0))
 }
 
+x0 = matrix(rnorm(4000, sd=2), nrow=1, ncol=4000)
+
+mod = seqMC(f, prob_y_given_x, x0)
+
 ### simulate true path ###
+x0 = 0.1
 T = 50
-x = rep(0.0, T+1)
-for (t in 1:T) {
+x = rep(0.0, T)
+x[1] = f(0, x0)
+for (t in 1:(T-1)) {
 	 x[t+1] = f(t, x[t])
 }
-x = x[-1]
 y = x * x / 20 + rnorm(length(x))
 
-### estimate the posterior of state vector ####
-N = 4000
-x0 = matrix(rnorm(N, sd=sqrt(2)), nrow=1, ncol=N)
-xhat = seqMC(f, prob_y_given_x, x0, matrix(y, nrow=1))
-xhat_mean = apply(xhat, 3, mean)
+### estimate the posterior of state vector given y[t] ####
+xhat = sapply(1:T, function(t) {
+   mod <<- update(mod, y[t])
+   c(mean(mod$x), quantile(mod$x, c(0.025, 0.975)))
+})
 
-alpha = 0.05
-xhat_ci_lower = apply(xhat, 3, quantile, probs=alpha/2)
-xhat_ci_upper = apply(xhat, 3, quantile, probs=1-alpha/2)
-
-plot(x[-1], ylim=c(-40, 40), pch='*')
-lines(xhat_ci_lower, lty='dotted')
-lines(xhat_mean)
-lines(xhat_ci_upper, lty='dotted')
+plot(x, ylim=c(-40, 40), pch='*')
+lines(xhat[1,])
+lines(xhat[2,], lty='dotted')
+lines(xhat[3,], lty='dotted')
 
 }
