@@ -4,7 +4,7 @@
 \alias{seqMC}
 \title{seqMC creates a seqMC object}
 \usage{
-seqMC(f, prob_y_given_x, x0, sample_method = c("systematic", "residual",
+seqMC(f, prob_y_given_x, x0, y0, sample_method = c("systematic", "residual",
   "bootstrap"))
 }
 \arguments{
@@ -16,6 +16,8 @@ y_t (observation vector at time t) and x_t (state vector at time t), it would re
 the conditional probability: Prob(y_t | x_t )}
 
 \item{x0}{matrix, sample of state vector at time 0, each col is a sample of state at time 0.}
+
+\item{y0}{observation at time 0 (can be missing).}
 
 \item{sample_method}{character, specify sample method in the resample stage.
 Default systematic, means "systematic resampling".}
