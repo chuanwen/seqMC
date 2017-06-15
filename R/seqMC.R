@@ -136,13 +136,19 @@ print.seqMC <- function(obj, ...) {
 #' (if y is missing).
 #'
 #' @param obj seqMC object.
-#' @param y observation at time obj$t + 1.
-#' @return seqMC object updated to next time point.
+#' @param y vector or matrix, if y is a vector, it represents an observation at a single time step,
+#' if y is a matrix, then each col is an observation at a time point, number of cols in y equal to number of 
+#' time steps.
+#' @return seqMC object updated after given observation(s).
 #' @export
 update.seqMC <- function(obj, y) {
-	obj = next_time.seqMC(obj)
-	if(!missing(y)) {
-		obj = resample.seqMC(obj, y)
+	if (missing(y)) {
+		return(next_time.seqMC(obj))
+	}
+	y = if (!is.matrix(y)) matrix(y, ncol=1) else y
+	for (col in 1:ncol(y)) {
+		obj = next_time.seqMC(obj)
+		obj = resample.seqMC(obj, y[, col])
 	}
 	obj
 }

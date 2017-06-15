@@ -10,10 +10,12 @@
 \arguments{
 \item{obj}{seqMC object.}
 
-\item{y}{observation at time obj$t + 1.}
+\item{y}{vector or matrix, if y is a vector, it represents an observation at a single time step,
+if y is a matrix, then each col is an observation at a time point, number of cols in y equal to number of 
+time steps.}
 }
 \value{
-seqMC object updated to next time point.
+seqMC object updated after given observation(s).
 }
 \description{
 Update seqMC object after an observation (if y is not missing) or simply update the object to next time point
