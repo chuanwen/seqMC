@@ -4,16 +4,16 @@
 \alias{seqMC}
 \title{seqMC creates a seqMC object}
 \usage{
-seqMC(f, prob_y_given_x, x0, y0, sample_method = c("systematic", "residual",
-  "bootstrap"))
+seqMC(f, logprob_y_given_x, x0, y0, sample_method = c("systematic",
+  "residual", "bootstrap"))
 }
 \arguments{
 \item{f}{function, when called with parameter t (time point) and 
 x_t (state vector at time t), it would return x_(t+1)}
 
-\item{prob_y_given_x}{function, when called with parameter t (time point), 
+\item{logprob_y_given_x}{function, when called with parameter t (time point), 
 y_t (observation vector at time t) and x_t (state vector at time t), it would return
-the conditional probability: Prob(y_t | x_t )}
+the conditional log_probability: log(Prob(y_t | x_t ))}
 
 \item{x0}{matrix, sample of state vector at time 0, each col is a sample of state at time 0.}
 
@@ -34,13 +34,13 @@ f <- function(t, x) {
  0.5 * x + 25 * x / (1 + x * x) + 8.0 * cos(1.2 * (t-1)) + rnorm(length(x), sd=sqrt(10.0))
 }
 
-prob_y_given_x <- function(t, y, x) {
-	 as.numeric(dnorm(y - x * x / 20.0))
+logprob_y_given_x <- function(t, y, x) {
+	 as.numeric(-(y - x * x / 20.0)**2/2.0)
 }
 
 x0 = matrix(rnorm(4000, sd=2), nrow=1, ncol=4000)
 
-mod = seqMC(f, prob_y_given_x, x0)
+mod = seqMC(f, logprob_y_given_x, x0)
 
 ### simulate true path ###
 x0 = 0.1
@@ -55,7 +55,7 @@ y = x * x / 20 + rnorm(length(x))
 ### estimate the posterior of state vector given y[t] ####
 xhat = sapply(1:T, function(t) {
    mod <<- update(mod, y[t])
-   c(mean(mod$x), quantile(mod$x, c(0.025, 0.975)))
+   estimate.seqMC(mod) # c(mean(mod$x), quantile(mod$x, c(0.025, 0.975)))
 })
 
 plot(x, ylim=c(-40, 40), pch='*')

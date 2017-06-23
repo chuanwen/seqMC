@@ -3,4 +3,5 @@
 S3method(print,seqMC)
 S3method(update,seqMC)
 export(batchSeqMC)
+export(estimate.seqMC)
 export(seqMC)

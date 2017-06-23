@@ -1,13 +1,3 @@
-normalize <- function(x) {
-	sx = sum(x)
-	if (sx > 0) {
-		x / sx
-	} else {
-		warning("normalize alll zero vector")
-		rep(1.0/length(x), length(x))
-	}
-}
-
 bootstrap_sample <- function(prob, n=length(prob)) {
 	sample.int(length(prob), size=n, replace=TRUE, prob=prob)
 }
@@ -42,7 +32,7 @@ systematic_sample <- function(prob, n=length(prob)) {
 #'		T is the number of time steps.
 #'
 #' @export
-batchSeqMC <- function(f, prob_y_given_x, x0, y,
+batchSeqMC <- function(f, logprob_y_given_x, x0, y,
 	              sample_method=c("systematic", "residual", "bootstrap")) {
 	stopifnot(is.matrix(x0), is.matrix(y))
 	sample_method = match.arg(sample_method)
@@ -63,9 +53,9 @@ batchSeqMC <- function(f, prob_y_given_x, x0, y,
 #'
 #' @param f function, when called with parameter t (time point) and 
 #' 		x_t (state vector at time t), it would return x_(t+1)
-#' @param prob_y_given_x function, when called with parameter t (time point), 
+#' @param logprob_y_given_x function, when called with parameter t (time point), 
 #' 		y_t (observation vector at time t) and x_t (state vector at time t), it would return
-#' 		the conditional probability: Prob(y_t | x_t )
+#' 		the conditional log_probability: log(Prob(y_t | x_t ))
 #' @param x0 matrix, sample of state vector at time 0, each col is a sample of state at time 0.
 #' @param y0 observation at time 0 (can be missing).
 #' @param sample_method character, specify sample method in the resample stage.
@@ -78,13 +68,13 @@ batchSeqMC <- function(f, prob_y_given_x, x0, y,
 #'	 0.5 * x + 25 * x / (1 + x * x) + 8.0 * cos(1.2 * (t-1)) + rnorm(length(x), sd=sqrt(10.0))
 #' }
 #'
-#' prob_y_given_x <- function(t, y, x) {
-#' 	 as.numeric(dnorm(y - x * x / 20.0))
+#' logprob_y_given_x <- function(t, y, x) {
+#' 	 as.numeric(-(y - x * x / 20.0)**2/2.0)
 #' }
 #'
 #' x0 = matrix(rnorm(4000, sd=2), nrow=1, ncol=4000)
 #'
-#' mod = seqMC(f, prob_y_given_x, x0)
+#' mod = seqMC(f, logprob_y_given_x, x0)
 #'
 #' ### simulate true path ###
 #' x0 = 0.1
@@ -99,7 +89,7 @@ batchSeqMC <- function(f, prob_y_given_x, x0, y,
 #' ### estimate the posterior of state vector given y[t] ####
 #' xhat = sapply(1:T, function(t) {
 #'    mod <<- update(mod, y[t])
-#'    c(mean(mod$x), quantile(mod$x, c(0.025, 0.975)))
+#'    estimate.seqMC(mod) # c(mean(mod$x), quantile(mod$x, c(0.025, 0.975)))
 #' })
 #' 
 #' plot(x, ylim=c(-40, 40), pch='*')
@@ -108,18 +98,19 @@ batchSeqMC <- function(f, prob_y_given_x, x0, y,
 #' lines(xhat[3,], lty='dotted')
 #'
 #' @export
-seqMC <- function(f, prob_y_given_x, x0, y0, sample_method=c("systematic", "residual", "bootstrap")) {
+seqMC <- function(f, logprob_y_given_x, x0, y0, sample_method=c("systematic", "residual", "bootstrap")) {
 	stopifnot(is.matrix(x0)) # x0 is matrix of N cols, with N = number of samples (particles)
 	sample_method = match.arg(sample_method)
 	resampler = get(sprintf("%s_sample", sample_method))
 	ans = structure(list(resampler=resampler,
 		                 f=f,
-						 prob_y_given_x=prob_y_given_x,
+						 logprob_y_given_x=logprob_y_given_x,
 						 N=ncol(x0),
 						 t=0,
-						 x=x0), class="seqMC")
+						 x=x0,
+						 w=rep(1, ncol(x0))), class="seqMC")
 	if (!missing(y0)) {
-		resample.seqMC(ans, y0)
+		update_weight.seqMC(ans, y0)
 	} else {
 		ans
 	}
@@ -147,9 +138,20 @@ update.seqMC <- function(obj, y) {
 	}
 	y = if (!is.matrix(y)) matrix(y, ncol=1) else y
 	for (col in 1:ncol(y)) {
+		obj = resample.seqMC(obj)
 		obj = next_time.seqMC(obj)
-		obj = resample.seqMC(obj, y[, col])
+		obj = update_weights.seqMC(obj, y[, col])
 	}
+	obj
+}
+
+effective_sample_size <- function(w) {
+	sum(w)**2 / sum(w**2)
+}
+
+resample.seqMC <- function(obj) {
+	obj$x = obj$x[, obj$resampler(obj$w/obj$N), drop=FALSE]
+	obj$w = rep(1, ncol(obj$x))		
 	obj
 }
 
@@ -159,10 +161,27 @@ next_time.seqMC <- function(obj) {
 	obj
 }
 
-resample.seqMC <- function(obj, y) {
-	w = normalize(obj$prob_y_given_x(obj$t, y, obj$x))
-	obj$x = obj$x[, obj$resampler(w), drop=FALSE]
+update_weights.seqMC <- function(obj, y) {
+	logprob = obj$logprob_y_given_x(obj$t, y, obj$x)
+	obj$w = obj$w * exp(logprob - max(logprob))
+	# sum of obj$w should be equal to it's length.
+	obj$w = obj$w * (length(obj$w) / sum(obj$w))
 	obj
+}
+
+weightedMean <- function(x, weights=NULL) {
+	if (!is.null(weights)) {
+		sum(x*weights)/sum(weights)
+	} else {
+		mean(x)	
+	}
+}
+
+#' @export
+estimate.seqMC <- function(obj) {
+	mean = apply(obj$x, 1, weightedMean, weight=obj$w)
+	ci = apply(obj$x, 1, Hmisc::wtd.quantile, weights=obj$w, probs=c(0.025, 0.975))
+	cbind(mean, t(ci))
 }
 
 

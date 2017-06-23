@@ -4,16 +4,16 @@
 \alias{batchSeqMC}
 \title{Sequential Monte Carlo}
 \usage{
-batchSeqMC(f, prob_y_given_x, x0, y, sample_method = c("systematic",
+batchSeqMC(f, logprob_y_given_x, x0, y, sample_method = c("systematic",
   "residual", "bootstrap"))
 }
 \arguments{
 \item{f}{function, when called with parameter t (time point) and 
 x_t (state vector at time t), it would return x_(t+1)}
 
-\item{prob_y_given_x}{function, when called with parameter t (time point), 
+\item{logprob_y_given_x}{function, when called with parameter t (time point), 
 y_t (observation vector at time t) and x_t (state vector at time t), it would return
-the conditional probability: Prob(y_t | x_t )}
+the conditional log_probability: log(Prob(y_t | x_t ))}
 
 \item{x0}{matrix, sample of state vector at time 0, each col is a sample of state at time 0.}
 
