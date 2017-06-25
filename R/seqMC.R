@@ -89,7 +89,7 @@ batchSeqMC <- function(f, logprob_y_given_x, x0, y,
 #' ### estimate the posterior of state vector given y[t] ####
 #' xhat = sapply(1:T, function(t) {
 #'    mod <<- update(mod, y[t])
-#'    estimate.seqMC(mod) # c(mean(mod$x), quantile(mod$x, c(0.025, 0.975)))
+#'    estimate.seqMC(mod)
 #' })
 #' 
 #' plot(x, ylim=c(-40, 40), pch='*')
