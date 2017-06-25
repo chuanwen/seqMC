@@ -110,7 +110,7 @@ seqMC <- function(f, logprob_y_given_x, x0, y0, sample_method=c("systematic", "r
 						 x=x0,
 						 w=rep(1, ncol(x0))), class="seqMC")
 	if (!missing(y0)) {
-		update_weight.seqMC(ans, y0)
+		update_weights.seqMC(ans, y0)
 	} else {
 		ans
 	}
